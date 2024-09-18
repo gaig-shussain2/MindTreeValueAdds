@@ -1,3 +1,0 @@
-﻿select * from qdm.VW_TRANS_NON_PREMIUM
-where POL_NO_CD in (&PolicyNo)
-and POL_MODULE_CD in (&PolicyMod)
