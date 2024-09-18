@@ -1,0 +1,593 @@
+﻿
+@{
+    ViewBag.Title = "Manage";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="text-center">Manual Coverage Configurator</h2>
+<h4 class="text-center">Sample Desc.</h4>
+
+<hr />
+<div class="container text-right label-default" style="padding-top:5px; padding-bottom:5px;">
+    <a href="Index" style="color:white;">Back</a>
+</div>
+<hr />
+
+<div>
+    <section>
+        <div class="container">
+            <form method="post">
+                <div class="form-horizontal">
+                    <div class="col-md-12">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="Server">Select Tool Type</label>
+                                <select class="form-control" id="ToolType" name="ToolType">
+                                    <option>Validate Submission in EDW</option>
+                                    <option>Validate BDM Premiums</option>
+                                    <option>Build Coverage Break Down</option>
+                                    <option>Build Tax Break Down</option>
+                                    <option>Download Policy Term</option>
+                                    <option>Download EDW/ADW Data</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="Server">Select Server</label>
+                                @Html.DropDownList("Server", null, new { @id = "Server", @class = "form-control", @name = "Server" })
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="PolicyNumber">Enter Policy #</label>
+                                <input type="text" class="form-control" id="PolicyNumber" placeholder="CAP 00000 00 00" name="PolicyNumber" autocomplete="off">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group">
+                                <label for="Submission">Enter Submission #</label>
+                                <input type="number" class="form-control" id="Submission" placeholder="123456789" name="Submission" autocomplete="off">
+                                <textarea class="form-control" id="SubmissionIDs" placeholder="123456789,98765431,7689653" style="display:none"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-12">
+                        <button type="button" class="btn btn-primary" id="ValidatePolicyInEDW">Submit</button>
+                        <button type="button" class="btn btn-primary" id="ValidateBDMPremiums" style="display:none">Submit</button>
+                        <button type="button" class="btn btn-primary" id="GenerateCovBreakDown" style="display:none">Submit</button>
+                        <button type="button" class="btn btn-primary" id="GenerateTaxBreakDown" style="display:none">Submit</button>
+                        <button type="button" class="btn btn-primary" id="DownloadPolicyTerm" style="display:none">Submit</button>
+                        <button type="button" class="btn btn-primary" id="DownloadEDWAndADWData" style="display:none">Submit</button>
+                        <button type="button" class="btn btn-danger" id="btn_Clear">Clear</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </section>
+    <br />
+
+    <section>
+        <div class="container">
+            <br />
+            <div style="text-align: right;">
+                <h4><b>Result Section</b></h4>
+            </div>
+            <div style="width:100%; margin:0 auto;" id="ResultDiv"></div>
+            <div class="msgclass alert" id="DownloadLink" hidden></div>
+        </div>
+    </section>
+</div>
+
+@* jQuery Version 3.3.1 is obsilated from this project. Adding latest jQuery file referance to fix that. *@
+<script src="~/Scripts/jquery-3.6.0.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        function ShowTosterMessage(Type, Title, Alert) {
+            var timeOut = 3000;
+            var showCloseButton = true;
+
+            if (Type == 'success') {
+                toastr.success(Alert, '', { timeOut: timeOut, 'closeButton': showCloseButton });
+            }
+            else if (Type == 'warning') {
+                toastr.warning(Alert, '', { timeOut: timeOut, 'closeButton': showCloseButton });
+            }
+            else if (Type == 'error') {
+                toastr.error(Alert, '', { timeOut: timeOut, 'closeButton': showCloseButton });
+            }
+        }
+
+        $.fn.ShowMessage = function (addClassVal, message) {
+            var a = document.createElement("a");
+            a.textContent = message;
+            $('#DownloadLink').empty();
+            $("#DownloadLink").removeClass('alert-danger');
+            $("#DownloadLink").removeClass('alert-warning');
+            $("#DownloadLink").removeClass('alert-success');
+            $('#DownloadLink').addClass(addClassVal);
+            $("#DownloadLink").append(a);
+            $('#DownloadLink').show();
+        };
+
+        function ValidateScreen() {
+            var isValidScreen = true;
+            var ToolType = $('#ToolType option:selected').text();
+
+            if (ToolType == 'Validate Submission in EDW') {
+                if ($('#PolicyNumber').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid policy number.');
+                }
+                else if ($('#Submission').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid submission id.');
+                }
+            }
+
+            else if (ToolType == 'Build Coverage Break Down') {
+                if ($('#PolicyNumber').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid policy number.');
+                }
+            }
+
+            else if (ToolType == 'Build Tax Break Down') {
+                if ($('#PolicyNumber').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid policy number.');
+                }
+            }
+
+            else if (ToolType == 'Download Policy Term') {
+                if ($('#PolicyNumber').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid policy number.');
+                }
+            }
+
+            else if (ToolType == 'Download EDW/ADW Data') {
+                if ($('#PolicyNumber').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid policy number.');
+                }
+                else if ($('#SubmissionIDs').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid submission ids.');
+                }
+            }
+
+            else if (ToolType == 'Validate BDM Premiums') {
+                if ($('#PolicyNumber').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid policy number.');
+                }
+                else if ($('#Submission').val() == '') {
+                    isValidScreen = false;
+                    ShowTosterMessage('warning', 'Warning', 'Invalid submission id.');
+                }
+            }
+
+            return isValidScreen;
+        }
+
+        $.fn.ClearAll = function () {
+            $('#Submission').val("");
+            $('#Submission').prop("disabled", false);
+
+            $('#PolicyNumber').val("");
+            $('#PolicyNumber').prop("disabled", false);
+
+            $("#Server").val($("#Server option:first").val());
+            $('#Server').prop("disabled", false);
+
+            $('#ToolType').val("Validate Submission in EDW");
+            $('#ToolType').prop("disabled", false);
+
+            $('#DownloadLink').empty();
+            $("#DownloadLink").removeClass('alert-danger');
+            $("#DownloadLink").removeClass('alert-warning');
+            $("#DownloadLink").removeClass('alert-success');
+
+            $('#ToolType option:selected').text() = 'Validate Submission in EDW';
+            $('#ValidatePolicyInEDW').show();
+            $('#GenerateCovBreakDown').hide();
+            $('#GenerateTaxBreakDown').hide();
+            $('#DownloadPolicyTerm').hide();
+            $('#DownloadEDWAndADWData').hide();
+
+            $('#Submission').show();
+            $('#SubmissionIDs').hide();
+        };
+
+        $("#btn_Clear").click(function () {
+            $('#element').ClearAll()
+        });
+
+        $("#ToolType").change(function () {
+            var ToolType = $('#ToolType option:selected').text();
+
+            if (ToolType == 'Validate Submission in EDW') {
+                $('#ValidatePolicyInEDW').show();
+                $('#GenerateCovBreakDown').hide();
+                $('#GenerateTaxBreakDown').hide();
+                $('#DownloadPolicyTerm').hide();
+                $('#DownloadEDWAndADWData').hide();
+                $('#ValidateBDMPremiums').hide();
+
+                $('#Submission').show();
+                $('#Submission').prop("disabled", false);
+                $('#SubmissionIDs').hide();
+            }
+            else if (ToolType == 'Build Coverage Break Down') {
+                $('#GenerateCovBreakDown').show();
+                $('#ValidatePolicyInEDW').hide();
+                $('#GenerateTaxBreakDown').hide();
+                $('#DownloadPolicyTerm').hide();
+                $('#DownloadEDWAndADWData').hide();
+                $('#ValidateBDMPremiums').hide();
+
+                $('#Submission').show();
+                $('#Submission').prop("disabled", false);
+                $('#SubmissionIDs').hide();
+            }
+            else if (ToolType == 'Build Tax Break Down') {
+                $('#GenerateTaxBreakDown').show();
+                $('#GenerateCovBreakDown').hide();
+                $('#ValidatePolicyInEDW').hide();
+                $('#DownloadPolicyTerm').hide();
+                $('#DownloadEDWAndADWData').hide();
+                $('#ValidateBDMPremiums').hide();
+
+                $('#Submission').show();
+                $('#Submission').prop("disabled", true);
+                $('#SubmissionIDs').hide();
+            }
+            else if (ToolType == 'Download Policy Term') {
+                $('#DownloadPolicyTerm').show();
+                $('#ValidatePolicyInEDW').hide();
+                $('#GenerateCovBreakDown').hide();
+                $('#GenerateTaxBreakDown').hide();
+                $('#DownloadEDWAndADWData').hide();
+                $('#ValidateBDMPremiums').hide();
+
+                $('#Submission').show();
+                $('#Submission').prop("disabled", true);
+                $('#SubmissionIDs').hide();
+            }
+            else if (ToolType == 'Download EDW/ADW Data') {
+                $('#DownloadEDWAndADWData').show();
+                $('#DownloadPolicyTerm').hide();
+                $('#ValidatePolicyInEDW').hide();
+                $('#GenerateCovBreakDown').hide();
+                $('#GenerateTaxBreakDown').hide();
+                $('#ValidateBDMPremiums').hide();
+
+                $('#Submission').hide();
+                $('#SubmissionIDs').show();
+            }
+            else if (ToolType == 'Validate BDM Premiums') {
+                $('#ValidateBDMPremiums').show();
+                $('#GenerateCovBreakDown').hide();
+                $('#GenerateTaxBreakDown').hide();
+                $('#DownloadPolicyTerm').hide();
+                $('#DownloadEDWAndADWData').hide();
+                $('#ValidatePolicyInEDW').hide();
+
+                $('#Submission').show();
+                $('#Submission').prop("disabled", false);
+                $('#SubmissionIDs').hide();
+            }
+        });
+
+        $("#ValidatePolicyInEDW").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("ValidateSubmission")',
+                    datatype: JSON,
+                    data: { 'Server': $('#Server').val(), 'PolicyNumber': $('#PolicyNumber').val(), 'Submission': $('#Submission').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) { $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.'); }
+                        else {
+                            if (data == 'success') { $('#element').ShowMessage('alert-success', 'Submission Present in EDW & ADW.'); }
+                            else { $('#element').ShowMessage('alert-danger', data); }
+                        }
+                    },
+                    error: function () { $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.'); }
+                });
+            }
+        });
+
+        $("#ValidateBDMPremiums").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("ValidateBDMPremiums")',
+                    datatype: JSON,
+                    data: { 'Server': $('#Server').val(), 'PolicyNumber': $('#PolicyNumber').val(), 'Submission': $('#Submission').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) { $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.'); }
+                        else if (data.includes("==")) {
+                            var result = data.split('==');
+                            $('#element').ShowMessage('alert-success', 'Sucess. {Total= ' + result[0] + '}, {Total Non Tax=' + result[1] + '} and {Total Tax=' + result[2] + '}.');
+                        }
+                        else { $('#element').ShowMessage('alert-danger', data); }
+                    },
+                    error: function () { $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.'); }
+                });
+            }
+        });
+
+        $("#GenerateCovBreakDown").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("ExtractCoverageBreakDOwnReport")',
+                    datatype: JSON,
+                    data: { 'Server': $('#Server').val(), 'PolicyNumber': $('#PolicyNumber').val(), 'Submission': $('#Submission').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) {
+                            $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                        }
+                        else {
+                            if (data == 'success') {
+
+                                if ($('#Submission').val() == '') {
+                                    window.location = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=CoverageBDForPolicy';
+
+                                    var eg = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=CoverageBDForPolicy';
+                                    var a = document.createElement("a");
+                                    a.href = eg;
+                                    a.textContent = "File Downloded. Click here to download again.";
+                                }
+                                else {
+                                    window.location = 'DownloadReport?CallingName=' + $('#Submission').val() + '&CallingType=CoverageBDForSubmission';
+
+                                    var eg = 'DownloadReport?CallingName=' + $('#Submission').val() + '&CallingType=CoverageBDForSubmission';
+                                    var a = document.createElement("a");
+                                    a.href = eg;
+                                    a.textContent = "File Downloded. Click here to download again.";
+                                }
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else if (data.includes("==")) {
+                                var result = data.split('==');
+                                if ($('#Submission').val() == '') {
+                                    window.location = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=CoverageBDForPolicy' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+
+                                    var eg = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=CoverageBDForPolicy' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+                                    var a = document.createElement("a");
+                                    a.href = eg;
+                                    a.textContent = "File Downloded. Click here to download again.";
+                                }
+                                else {
+                                    window.location = 'DownloadReportNew?CallingName=' + $('#Submission').val() + '&CallingType=CoverageBDForSubmission' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+
+                                    var eg = 'DownloadReportNew?CallingName=' + $('#Submission').val() + '&CallingType=CoverageBDForSubmission' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+                                    var a = document.createElement("a");
+                                    a.href = eg;
+                                    a.textContent = "File Downloded. Click here to download again.";
+                                }
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else {
+                                $('#element').ShowMessage('alert-danger', data);
+                            }
+                        }
+                    },
+                    error: function () {
+                        $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                    }
+                });
+            }
+        });
+
+        $("#GenerateTaxBreakDown").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("ExtractTaxBreakDownReport")',
+                    datatype: JSON,
+                    data: { 'Server': $('#Server').val(), 'PolicyNumber': $('#PolicyNumber').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) {
+                            $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                        }
+                        else {
+                            if (data == 'success') {
+
+                                window.location = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=TaxBD';
+
+                                var eg = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=TaxBD';
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else if (data.includes("==")) {
+                                var result = data.split('==');
+                                window.location = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=TaxBD' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+
+                                var eg = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=TaxBD' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else {
+                                $('#element').ShowMessage('alert-danger', data);
+                            }
+                        }
+                    },
+                    error: function () {
+                        $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                    }
+                });
+            }
+        });
+
+        $("#DownloadPolicyTerm").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("DownloadPolicyTerm")',
+                    datatype: JSON,
+                    data: { 'Server': $('#Server').val(), 'PolicyNumber': $('#PolicyNumber').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) {
+                            $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                        }
+                        else {
+                            if (data == 'success') {
+
+                                window.location = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=PolicyTerm';
+
+                                var eg = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=PolicyTerm';
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else if (data.includes("==")) {
+                                var result = data.split('==');
+                                window.location = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=PolicyTerm' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+
+                                var eg = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=PolicyTerm' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else {
+                                $('#element').ShowMessage('alert-danger', data);
+                            }
+                        }
+                    },
+                    error: function () {
+                        $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                    }
+                });
+            }
+        });
+
+        $("#DownloadEDWAndADWData").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    type: 'GET',
+                    url: '@Url.Action("DownloadEDWAndADWData")',
+                    datatype: JSON,
+                    data: { 'Server': $('#Server').val(), 'PolicyNumber': $('#PolicyNumber').val(), 'SubmissionIDs': $('#SubmissionIDs').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) {
+                            $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                        }
+                        else {
+                            if (data == 'success') {
+                                window.location = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=EDWAndADWData';
+
+                                var eg = 'DownloadReport?CallingName=' + $('#PolicyNumber').val() + '&CallingType=EDWAndADWData';
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else if (data.includes("==")) {
+                                var result = data.split('==');
+                                window.location = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=EDWAndADWData' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+
+                                var eg = 'DownloadReportNew?CallingName=' + $('#PolicyNumber').val() + '&CallingType=EDWAndADWData' + '&filePath=' + result[1] + '&key=' + $('#GUID').html();
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else {
+                                $('#element').ShowMessage('alert-danger', data);
+                            }
+                        }
+                    },
+                    error: function () {
+                        $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                    }
+                });
+            }
+        });
+    });
+</script>
+

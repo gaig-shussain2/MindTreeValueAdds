@@ -1,0 +1,9 @@
+﻿-- Update Manage Activity Screen in Cube
+SELECT * FROM RAMT.quote WHERE SUBMISSION_ID in ('&SUBMISSION_ID');
+
+SELECT * FROM RAMT.rpm_search WHERE SEARCH_NAME in ('TOTAPRPPremium') AND row_key IN ('&Quote_ID');
+
+SELECT * FROM RAMT.rpm_search WHERE SEARCH_NAME in ('TOTAPRPPremium') AND RPM_SEARCH_ID IN ('&RPM_SEARCH_ID');
+
+-- UPDATE RAMT.rpm_search SET SEARCH_VALUE = '&SEARCH_VALUE' where RPM_SEARCH_ID IN ('&RPM_SEARCH_ID') ;
+-- Commit;

@@ -1,0 +1,44 @@
+﻿select pol_no_cd, pol_module_cd, pol_version_cd, subm_id, sum(prem_amt) PREM_AMT from 
+( 
+	SELECT a.pol_no_cd
+		,a.pol_module_cd
+		,a.pol_version_cd
+		,subm_id
+		,f.COVERAGE_ID
+		,d.RISK_ID
+		,c.PRC_RATING_ID
+		,f.cvrg_cd busn_cvrg_ebi
+		,e.xml_message_no xml_message_id
+		,e.transaction_group_part_no
+		,e.transaction_group_part_cnt
+		,prem_amt 
+		,b.edw_busn_dt source_busn_dt
+		,A.POL_TERM_EFF_DT, POL_TERM_HIST.POL_TERM_EXP_DT
+		,e.trans_eff_dt
+		,a.pol_term_ebi_txt || '.' || a.pol_term_inst_ebi_no pol_term_ebi
+		,e.trans_ebi_txt || '.' || e.trans_inst_ebi_no trans_ebi_txt
+		,f.cvrg_ebi_txt || '.' || f.cvrg_inst_ebi_no cvrg_ebi
+		,NVL(c.rate_class_mdm_cd, c.ref_rate_class_id) ref_rate_class_ebi
+		,c.prc_rating_ebi_txt || '.' || c.prc_rating_inst_ebi_no prc_rating_ebi
+		,e.system_activity_cd system_activity_ebi_txt
+		,edw_ref_business_activity.item_cd business_activity_ebi_txt
+		,e.source_process_ts
+		,edw_ref_cancel_catg.list_nm || '|' || edw_ref_cancel_catg.item_cd cancel_catg_ebi_txt
+		,edw_ref_cancel_evidence.list_nm || '|' || edw_ref_cancel_evidence.item_cd  cancel_evidence_ebi_txt
+		,edw_ref_cancel_non_renew_rsn.list_nm || '|' || edw_ref_cancel_non_renew_rsn.item_cd cancel_non_renew_rsn_ebi_txt
+		,ee.cancel_non_renew_oth_desc,ee.TEMP_REINSTATE_IND FROM edw.pol_term a  
+		JOIN edw.pol_risk_cvrg d ON a.pol_term_id = d.pol_term_id
+		JOIN edw.vw_coverage f ON f.coverage_id = d.coverage_id
+		JOIN edw.prc_rating c ON d.pol_risk_cvrg_id = c.pol_risk_cvrg_id
+		JOIN edw.vw_prc_rating_prem b ON c.prc_rating_id = b.prc_rating_id AND b.catg_ref_id = 2607 --APRP=2607 --prp=2546   
+		JOIN edw.vw_edw_trans e ON e.edw_trans_id = c.edw_trans_id
+		JOIN edw.pol_trans ee ON ee.edw_trans_id = c.edw_trans_id
+		JOIN edw.edw_ref edw_ref_business_activity ON ee.business_activity_ref_id = edw_ref_business_activity.edw_ref_id
+		JOIN adw.vwa_edw_ref edw_ref_cancel_catg ON ee.cancel_catg_ref_id = edw_ref_cancel_catg.edw_ref_id
+		JOIN adw.vwa_edw_ref edw_ref_cancel_evidence ON ee.cancel_evidence_ref_id = edw_ref_cancel_evidence.edw_ref_id
+		JOIN adw.vwa_edw_ref edw_ref_cancel_non_renew_rsn ON ee.cancel_non_renew_reason_ref_id = edw_ref_cancel_non_renew_rsn.edw_ref_id
+		JOIN edw.pol_term_hist on e.edw_trans_id = pol_term_hist.edw_trans_id
+	WHERE a.pol_term_id in (select pol_term_id from edw.pol_term where pol_no_cd = '&POL_NO_CD' and POL_MODULE_CD in ('&POL_MODULE_CD') and POL_VERSION_CD in ('&POL_VERSION_CD'))
+	ORDER BY cvrg_ebi, source_process_ts, transaction_group_part_no, transaction_group_part_cnt
+)
+group by pol_no_cd, pol_module_cd, pol_version_cd, subm_id

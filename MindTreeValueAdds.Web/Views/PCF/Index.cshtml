@@ -1,0 +1,256 @@
+﻿
+@{
+    ViewBag.Title = "Index";
+    Layout = "~/Views/Shared/_Layout.cshtml";
+}
+
+<h2 class="text-center">Generate PCF File</h2>
+<h4 class="text-center">Sample Desc.</h4>
+
+<hr />
+<div class="container text-right label-default" style="padding-top:5px; padding-bottom:5px;">
+    <a href="#" style="color:white;">Click here access tool's:</a>
+</div>
+<hr />
+
+<div>
+    <section>
+        <form method="post">
+            <div class="form-horizontal">
+                <div class="col-md-12">
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Server">Select Type</label>
+                            <select class="form-control" id="Type" name="Type">
+                                <option>Select Multiple</option>
+                                <option>Select Single</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group">
+                            <label for="Server">Select Server</label>
+                            @Html.DropDownList("Server", null, new { @id = "Server", @class = "form-control", @name = "Server" })
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="form-group" id="div_Submission" style="display:none">
+                            <label for="Submission">Enter Submission</label>
+                            <input type="number" class="form-control" id="Submission" name="Submission" placeholder="123456789">
+                        </div>
+                        <div class="form-group" id="div_FileUpload">
+                            <label for="FileUpload">File Upload</label>
+                            <input type="file" class="form-control" id="FileUpload" name="FileUpload">
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-12">
+                    <input type="checkbox" id="TriggerRqInTool" name="TriggerRqInTool" />
+                    <label for="AdvanceOption">Check this to trigger the requests in tool.</label>
+                    <br />
+                    <br />
+                </div>
+                <div class="col-md-12">
+                    <button type="button" class="btn btn-primary" id="Submit_Multiple">Submit</button>
+                    <button type="button" class="btn btn-primary" id="Submit_Single" style="display:none">Submit</button>
+                    <button type="button" class="btn btn-danger" id="Clear">Clear</button>
+                </div>
+            </div>
+        </form>
+    </section>
+
+    <section>
+        <div class="container">
+            <div style="text-align: right;">
+                <a href="DownloadReport?filePath=SampleInput" target="_blank">Download Sample Input</a>
+            </div>
+        </div>
+    </section>
+
+    <section>
+        <div class="container">
+            <br />
+            <div style="text-align: right;">
+                <h4><b>Result Section</b></h4>
+            </div>
+            <div style="width:100%; margin:0 auto;" id="ResultDiv"></div>
+            <div class="msgclass alert" id="DownloadLink" hidden></div>
+        </div>
+    </section>
+</div>
+
+@* jQuery Version 3.3.1 is obsilated from this project. Adding latest jQuery file referance to fix that. *@
+<script src="~/Scripts/jquery-3.6.0.min.js"></script>
+
+<script type="text/javascript">
+    $(document).ready(function () {
+        function ShowTosterMessage(Type, Title, Alert) {
+            var timeOut = 3000;
+            var showCloseButton = true;
+
+            if (Type == 'success') {
+                toastr.success(Alert, '', { timeOut: timeOut, 'closeButton': showCloseButton });
+            }
+            else if (Type == 'warning') {
+                toastr.warning(Alert, '', { timeOut: timeOut, 'closeButton': showCloseButton });
+            }
+            else if (Type == 'error') {
+                toastr.error(Alert, '', { timeOut: timeOut, 'closeButton': showCloseButton });
+            }
+        }
+
+        $.fn.ShowMessage = function (addClassVal, message) {
+            var a = document.createElement("a");
+            a.textContent = message;
+            $('#DownloadLink').empty();
+            $("#DownloadLink").removeClass('alert-danger');
+            $("#DownloadLink").removeClass('alert-warning');
+            $("#DownloadLink").removeClass('alert-success');
+            $('#DownloadLink').addClass(addClassVal);
+            $("#DownloadLink").append(a);
+            $('#DownloadLink').show();
+        };
+
+        function ValidateScreen() {
+            var isValidScreen = true;
+            var Type = $('#Type option:selected').text();
+
+            if (Type == 'Select Single' && $("#Submission").val() == '') {
+                ShowTosterMessage('warning', 'Warning', 'Enter submission id to continue.');
+                return false;
+            }
+            else if (Type == 'Select Multiple') {
+                var files = $('#FileUpload').get(0).files;
+                if (files.length == 0) {
+                    ShowTosterMessage('warning', 'Warning', 'Oops, Please select any file to upload.');
+                    return false;
+                }
+            }
+
+            return isValidScreen;
+        }
+
+        $.fn.ClearAll = function () {
+            $("#Submission").val('');
+            $("#Type").val($("#Type option:first").val());
+            $("#Server").val($("#Server option:first").val());
+            $('#div_FileUpload').show();
+            $('#div_Submission').hide();
+            $('#Submit_Multiple').show();
+            $('#Submit_Single').hide();
+        };
+
+        $("#Clear").click(function () {
+            $('#element').ClearAll()
+        });
+
+        $('#FileUpload').change(function () {
+            var ext = this.value.match(/\.(.+)$/)[1];
+
+            if (ext != 'xls' && ext != 'xlsx') {
+                ShowTosterMessage('warning', 'Warning', 'Invalid file type. Please select XSL or XSLX file only.');
+                this.value = '';
+            }
+        });
+
+        $("#Type").change(function () {
+            var Type = $('#Type option:selected').text();
+
+            if (Type == 'Select Single') {
+                $('#div_Submission').show();
+                $('#div_FileUpload').hide();
+                $('#Submit_Single').show();
+                $('#Submit_Multiple').hide();
+            }
+            else if (Type == 'Select Multiple') {
+                $('#div_FileUpload').show();
+                $('#div_Submission').hide();
+                $('#Submit_Multiple').show();
+                $('#Submit_Single').hide();
+            }
+        });
+
+        $("#Submit_Multiple").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen == true) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                var files = $('#FileUpload').get(0).files;
+                var fileData = new FormData();
+                for (var i = 0; i < files.length; i++) {
+                    fileData.append(files[i].name, files[i]);
+                }
+
+                var TriggerRqInToolFinal = false;
+                if ($("#TriggerRqInTool").is(":checked")) { TriggerRqInToolFinal = true; }
+
+                fileData.append('Server', $('#Server').val());
+                fileData.append('TriggerRqInTool', TriggerRqInToolFinal);
+
+                $.ajax({
+                    url: '@Url.Action("GneeratePCF")',
+                    type: 'POST',
+                    contentType: false,
+                    processData: false,
+                    data: fileData,
+                    success: function (data) {
+                        if (data == '' || data == null) {
+                            $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                        }
+                        else {
+                            if (data.includes("==")) {
+                                var result = data.split('==');
+                                window.location = 'DownloadReport?filePath=' + result[1] + '&key=' + $('#GUID').html();
+
+                                var eg = 'DownloadReport?filePath=' + result[1] + '&key=' + $('#GUID').html();
+                                var a = document.createElement("a");
+                                a.href = eg;
+                                a.textContent = "File Downloded. Click here to download again.";
+                                $('#DownloadLink').empty();
+                                $("#DownloadLink").removeClass('alert-danger');
+                                $("#DownloadLink").removeClass('alert-warning');
+                                $('#DownloadLink').addClass('alert-success');
+                                $("#DownloadLink").append(a);
+                                $('#DownloadLink').show();
+                            }
+                            else {
+                                $('#element').ShowMessage('alert-danger', data);
+                            }
+                        }
+                    },
+                    error: function (){
+                        ShowTosterMessage('error', 'Error', 'Oops. Something went wrong.');
+                    }
+                });
+            }
+        });
+
+        $("#Submit_Single").click(function () {
+            var isValidScreen = ValidateScreen();
+
+            if (isValidScreen) {
+                $('#element').ShowMessage('alert-warning', 'Processing...!')
+
+                $.ajax({
+                    url: '@Url.Action("GetPCFData")',
+                    type: 'POST',
+                    datatype: JSON,
+                    data: { 'Submission': $('#Submission').val(), 'Server': $('#Server').val() },
+                    success: function (data) {
+                        if (data == '' || data == null) {
+                            $('#element').ShowMessage('alert-danger', 'Oops. Error in fatching data from server.');
+                        }
+                        else if (data.includes("==")) {
+                            var result = data.split('==');
+                            var message = "Aure File Name= " + result[4] + ", Origional Submission= " + result[1] + ", Version= " + result[3];
+                            $('#element').ShowMessage('alert-success', message);
+                        }
+                        else { $('#element').ShowMessage('alert-danger', data);}
+                    },
+                    error: function () { ShowTosterMessage('error', 'Error', 'Oops. Something went wrong.'); }
+                });
+            }
+        });
+    });
+</script>

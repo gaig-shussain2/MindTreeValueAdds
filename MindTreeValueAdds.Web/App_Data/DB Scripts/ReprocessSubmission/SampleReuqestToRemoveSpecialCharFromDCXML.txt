@@ -1,0 +1,10 @@
+﻿<CustomServer.processRq abortOnError="1">
+	<xsltRequests>
+		<OnlineData.loadPolicyRq policyID="&policyID&"/>
+		<OnlineData.loadHistoryRq historyID="&historyID&"/>
+		<getElementRqs />
+		<setElementRqs />
+		<OnlineData.storePolicyRq manuScriptID="&PageManuScriptID&"/>
+		<getElementRqs />
+	</xsltRequests>
+</CustomServer.processRq>

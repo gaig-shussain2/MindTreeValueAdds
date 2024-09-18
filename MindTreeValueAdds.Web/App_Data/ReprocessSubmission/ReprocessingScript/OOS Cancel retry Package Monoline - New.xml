@@ -1,0 +1,136 @@
+<!-- 
+	1. policyID = 21621
+	2. transGroup = t0C59F26B0D7F4C9FA55C71B084A5AEBC
+	3. Forms MS = Carrier_CommercialLines_Forms_US_11_0_0_0
+	4. Send.httpRq url = "https://wpi.td.afg/submissions/15149572/quotes/1/postissuances"
+	5. SystemID = 15149572
+	6. historyID= 154450
+-->
+<server>
+	<requests>
+		<Session.loginRq userName="admin" password=""/>
+		<CustomServer.processRq abortOnError="1">
+			<dataRequests>
+				<OnlineData.loadPolicyRq policyID="21621"/>
+				<FormsEngine.initPrintJobRq manuscript="Carrier_CommercialLines_Forms_US_11_0_0_0" printJob="_TransactionPrint" forceInit="3" debugInfo="" endorsement="1" historyID="154450" responseSessionPath="_IntegrationData^formsData" responseSelect="FormsEngine.initPrintJobRs/printJob"/>
+				<Session.getElementXmlRq path="_IntegrationData^formsData"/>
+				<SessionReconcile.getTransactionReportRq policyID="21621" transGroup="t5EB30E307BD04AB68AA1AF63DEF91605" details="0" xsltOut="$server.rootpath$\Transform\GAIG_DownstreamIssuance_Transform.xsl" var.entryCount="//SessionReconcile.getTransactionReportRs/report/entry/@count" var.entryType="//SessionReconcile.getTransactionReportRs/report/entry/@type" var.TransactionIndex="//SessionReconcile.getTransactionReportRs/report/entry/@index"/>
+				<Session.setElementRq path="_temporarySessionData^Commit/SessionReconcileRequestResponseEntryCount" value="~entryCount~"/>
+				<Session.setElementRq path="_temporarySessionData^Commit/SessionReconcileRequestResponseEntryType" value="~entryType~"/>
+				<Session.setElementRq path="_temporarySessionData^Commit/SessionReconcileRequestResponseTransactionIndex" value="~TransactionIndex~"/>
+				<Session.getElementXmlRq path="data/policy/PolicyNumber"/>
+				<Session.getElementXmlRq path="data/policy/businessUnit/Code"/>
+			</dataRequests>
+			<xsltRequests xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+				<xsl:for-each select="//SessionReconcile.getTransactionReportRs/report/entry">
+					<xsl:if test="@count > 1">
+						<Request.ifRq condition="1" async="3">
+							<CustomServer.processRq>
+								<dataRequests>
+									<GAIGDownstreamIntegration.generateGuidRq count="1" var.Guid="//Guid"/>
+									<Send.httpRq url="https://restful-clients.login.sys.cfprod-1.gaig.com/oauth/toke" verb="POST" var.AuthToken="concat('Bearer ',//body/access_token)">
+										<headers>
+											<header name="content-type" value="application/x-www-form-urlencoded"/>
+										</headers>
+										<query>
+											<parameter name="grant_type" value="client_credentials"/>
+											<parameter name="client_id" value="259165ef-d514-49bb-ba17-581a766914b5"/>
+											<parameter name="client_secret" value="1c60ff17-6cb7-49b5-8c58-c36cca1f8a7f"/>
+										</query>
+									</Send.httpRq>
+									<Request.setVarRq name="AuthHeader" type="xml">
+										<header name="Authorization" value="~AuthToken~"/>
+									</Request.setVarRq>
+									<Request.setVarRq name="XB3TraceIdHeader" type="xml">
+										<header name="'X-B3-TraceId'" value="~Guid~"/>
+									</Request.setVarRq>
+									<Request.setVarRq name="XB3SpanIdHeader" type="xml">
+										<header name="'X-B3-SpanId'" value="~Guid~"/>
+									</Request.setVarRq>
+									<Session.setLeafRq path="_tempAuthHeader">~AuthHeader~</Session.setLeafRq>
+									<Session.setLeafRq path="_tempTraceIdHeader">~XB3TraceIdHeader~</Session.setLeafRq>
+									<Session.setLeafRq path="_tempSpanIdHeader">~XB3SpanIdHeader~</Session.setLeafRq>
+									<Session.getElementXmlRq path="_tempAuthHeader/header"/>
+									<Session.getElementXmlRq path="_tempTraceIdHeader/header"/>
+									<Session.getElementXmlRq path="_tempSpanIdHeader/header"/>
+								</dataRequests>
+								<xsltRequests xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+									<Send.httpRq url="https://wpi-13.app.cfnp-1.gaig.com/submissions/15149572/quotes/1/postissuances" verb="POST" timeout="300000">
+										<headers>
+											<header name="Content-Type" value="application/vnd+gaig.duck-creek.oos.job-card+xml"/>
+											<xsl:element name="xsl:copy-of" namespace="http://www.w3.org/1999/XSL/Transform">
+												<xsl:attribute name="select">//Session.getElementXmlRs[1]/header</xsl:attribute>
+											</xsl:element>
+											<xsl:element name="xsl:copy-of" namespace="http://www.w3.org/1999/XSL/Transform">
+												<xsl:attribute name="select">//Session.getElementXmlRs[2]/header</xsl:attribute>
+											</xsl:element>
+											<xsl:element name="xsl:copy-of" namespace="http://www.w3.org/1999/XSL/Transform">
+												<xsl:attribute name="select">//Session.getElementXmlRs[3]/header</xsl:attribute>
+											</xsl:element>
+										</headers>
+										<body>
+											<xsl:choose>
+												<xsl:when test="@type='offset'">
+													<XACTConnect.generateREVCXMLRq SystemID="15149572">
+														<Body>
+															<DCTTransactionXML>
+																<SessionReconcile.getTransactionReportRs status="success">
+																	<report>
+																		<entry>
+																			<xsl:copy-of select="@*"/>
+																			<xsl:copy-of select="transaction"/>
+																			<policyNumber>
+																				<xsl:value-of select="//Session.getElementXmlRs/PolicyNumber"/>
+																			</policyNumber>
+																			<businessUnit>
+																				<xsl:value-of select="//Session.getElementXmlRs/Code"/>
+																			</businessUnit>
+																		</entry>
+																	</report>
+																</SessionReconcile.getTransactionReportRs>
+																<FormsList>
+                                </FormsList>
+															</DCTTransactionXML>
+														</Body>
+													</XACTConnect.generateREVCXMLRq>
+												</xsl:when>
+												<xsl:otherwise>
+													<XACTConnect.generateOOSCXMLRq SystemID="15149572">
+														<Body>
+															<DCTTransactionXML>
+																<SessionReconcile.getTransactionReportRs status="success">
+																	<report>
+																		<entry>
+																			<xsl:copy-of select="@*"/>
+																			<xsl:copy-of select="transaction"/>
+																			<policyNumber>
+																				<xsl:value-of select="//Session.getElementXmlRs/PolicyNumber"/>
+																			</policyNumber>
+																			<businessUnit>
+																				<xsl:value-of select="//Session.getElementXmlRs/Code"/>
+																			</businessUnit>
+																		</entry>
+																	</report>
+																</SessionReconcile.getTransactionReportRs>
+																<FormsList>
+																	<xsl:if test="@type != 'offset'">
+																		<xsl:copy-of select="//Session.getElementXmlRs/formsData"/>
+																	</xsl:if>
+																</FormsList>
+															</DCTTransactionXML>
+														</Body>
+													</XACTConnect.generateOOSCXMLRq>
+												</xsl:otherwise>
+											</xsl:choose>
+										</body>
+									</Send.httpRq>
+								</xsltRequests>
+							</CustomServer.processRq>
+						</Request.ifRq>
+					</xsl:if>
+				</xsl:for-each>
+			</xsltRequests>
+		</CustomServer.processRq>
+		<Session.closeRq/>
+	</requests>
+</server>

@@ -1,0 +1,80 @@
+<!-- 
+	1. policyID = $policyID
+	2. transGroup = $transGroup
+	3. Forms MS = $FormManuscriptID
+	4. SystemID = $SubmissionID
+	5. Send.httpRq url = "https://wpi.td.afg/submissions/$SubmissionID/quotes/$Version/postissuances"
+	6. Authorization = $bearerToken
+-->
+<server>
+  <requests>
+    <Session.loginRq userName="admin" password=""/>
+    <CustomServer.processRq abortOnError="" responseSelect="CustomServer.processRs" responseSessionPath="_downstream/Downstream/Response">
+      <dataRequests>
+        <SessionReconcile.getTransactionReportRq policyID="$policyID" transGroup="$transGroup" details="4" var.HistoryID="//SessionReconcile.getTransactionReportRs/report/entry/session/data/policyAdmin/transactions/transaction[last()]/HistoryID"/>
+        <FormsEngine.initPrintJobRq manuscript="$FormManuscriptID" printJob="_TransactionPrint" forceInit="3" debugInfo="" endorsement="1" historyID="~HistoryID~" responseSessionPath="_IntegrationData^formsData" responseSelect="FormsEngine.initPrintJobRs/printJob"/>
+        <Session.getElementXmlRq path="_IntegrationData^formsData"/>
+        <GAIGDownstreamIntegration.generateGuidRq count="1" var.Guid="//Guid"/>
+        <Settings.getPropertyRq name="Carrier_Integration_Flags.OAuthClientID" noexpand="True" var.OAuthClientID="//Settings.getPropertyRs/@value"/>
+        <Settings.getPropertyRq name="Carrier_Integration_Flags.OAuthClientSecret" noexpand="True" var.OAuthClientSecret="//Settings.getPropertyRs/@value"/>
+        <Settings.getPropertyRq name="Carrier_Integration_Flags.OAuthURL" noexpand="True" var.OAuthURL="//Settings.getPropertyRs/@value"/>
+        <Send.httpRq url="~OAuthURL~" verb="POST" responseSessionPath="_IntegrationData^OAuthAccessToken" var.OAUTH="concat('Bearer ',//body/access_token)">
+          <headers>
+            <header name="content-type" value="application/x-www-form-urlencoded"/>
+          </headers>
+          <query>
+            <parameter name="grant_type" value="client_credentials"/>
+            <parameter name="client_id" value="~OAuthClientID~"/>
+            <parameter name="client_secret" value="~OAuthClientSecret~"/>
+          </query>
+        </Send.httpRq>
+        <Request.setVarRq name="AuthHeader" type="xml">
+          <header name="Authorization" value="~OAUTH~"/>
+        </Request.setVarRq>
+        <Request.setVarRq name="XB3TraceIdHeader" type="xml">
+          <header name="'X-B3-TraceId'" value="~Guid~"/>
+        </Request.setVarRq>
+        <Request.setVarRq name="XB3SpanIdHeader" type="xml">
+          <header name="'X-B3-SpanId'" value="~Guid~"/>
+        </Request.setVarRq>
+        <Session.setLeafRq path="_tempAuthHeader">~AuthHeader~</Session.setLeafRq>
+        <Session.setLeafRq path="_tempTraceIdHeader">~XB3TraceIdHeader~</Session.setLeafRq>
+        <Session.setLeafRq path="_tempSpanIdHeader">~XB3SpanIdHeader~</Session.setLeafRq>
+        <Session.getElementXmlRq path="_tempAuthHeader/header"/>
+        <Session.getElementXmlRq path="_tempTraceIdHeader/header"/>
+        <Session.getElementXmlRq path="_tempSpanIdHeader/header"/>
+      </dataRequests>
+      <xsltRequests xmlns:xsl="http://www.w3.org/1999/XSL/Transform">
+        <xsl:for-each select="//SessionReconcile.getTransactionReportRs/report/entry">
+          <xsl:if test="@count = 1">
+            <Send.httpRq url="https://wpi.td.afg/submissions/$SubmissionID/quotes/$Version/postissuances" verb="POST" timeout="300000">
+              <headers>
+                <header name="Content-Type" value="application/xml"/>
+                <header name="Authorization" value="$bearerToken"/>
+                <header name="'X-B3-TraceId'" value="0622b032833d4584" id="hB9D3A080453E49C1BF164272352EA513"/>
+                <header name="'X-B3-SpanId'" value="0622b032833d4584" id="h73D0E5168C104446BE920A1AE32EC954"/>
+              </headers>
+              <body>
+                <XACTConnect.generateCXMLRq SystemID="$SubmissionID">
+                  <Body>
+                    <DCTTransactionXML>
+                      <SessionReconcile.getTransactionReportRs status="success">
+                        <report>
+                          <xsl:copy-of select="."/>
+                        </report>
+                      </SessionReconcile.getTransactionReportRs>
+                      <FormsList>
+                        <xsl:copy-of select="//Session.getElementXmlRs/formsData"/>
+                      </FormsList>
+                    </DCTTransactionXML>
+                  </Body>
+                </XACTConnect.generateCXMLRq>
+              </body>
+            </Send.httpRq>
+          </xsl:if>
+        </xsl:for-each>
+      </xsltRequests>
+    </CustomServer.processRq>
+    <Session.closeRq/>
+  </requests>
+</server>
